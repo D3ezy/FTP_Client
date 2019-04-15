@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Implementation-Title: My Tool
+Implementation-Version: 0.1
+Main-Class: cs472.drexel.edu.Main
+
