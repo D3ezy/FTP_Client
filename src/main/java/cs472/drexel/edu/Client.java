@@ -10,13 +10,16 @@
 package cs472.drexel.edu;
 
 import java.net.Socket;
+import java.util.logging.*;
 
 public class Client {
 
+	private Logger logger;
 	private Socket s;
 	
 	Client() {
-		
+		// create a new logger for the client
+		this.logger = Logger.getLogger(Client.class.getName());
 	}
 	
 }
