@@ -12,11 +12,21 @@ package cs472.drexel.edu;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.logging.*;
 
 public class Main {
 
+	private static final Logger LOGGER = Logger.getLogger( Main.class.getName() );
 	public static void main(String[] args) {
-		Client c = new Client();
+
+		// arg check
+		if (args.length != 1) {
+			LOGGER.log(Level.SEVERE, "Usage: java Client <ip addr>");
+			System.exit(1);
+		} 
+
+		Client c = new Client(args[0]);
+		// c.doProtocol();
 		showMenu(c);
 	}
 
@@ -25,10 +35,11 @@ public class Main {
 		Scanner input = new Scanner(System.in);
 		boolean isRunning = true;
 
-		while (isRunning) {
-			printMenu();	
+		while (isRunning) {	
 			switch(input.nextLine().toUpperCase()) {
 				case "USER":
+					c.doProtocol("user\r\n");
+					break;
 				/* The argument field is a Telnet string identifying the user.
 				The user identification is that which is required by the
 				server for access to its file system.  This command will
@@ -99,6 +110,8 @@ public class Main {
 				created at the server site if the file specified in the
 				pathname does not already exist. */
 				case "PWD":
+					c.doProtocol("pwd\r\n");
+					break;
 				/* This command causes the name of the current working
 				directory to be returned in the reply.  See Appendix II. */
 				case "SYST":
@@ -129,6 +142,7 @@ public class Main {
 				command. The server may use this reply to specify
 				site-dependent parameters, e.g., in response to HELP SITE. */
 					printMenu();
+					break;
 				case "QUIT":
 					/* This command terminates a USER and if file transfer is not
 					in progress, the server closes the control connection.  If
