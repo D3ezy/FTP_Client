@@ -9,7 +9,8 @@
 
 package cs472.drexel.edu;
 
-import java.io.DataInputStream;
+import java.io.InputStreamReader;
+import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
@@ -22,7 +23,7 @@ public class Client {
 	private static Logger LOGGER = null;
 	private boolean isConnected;
 	private Socket s;
-	private static DataInputStream input;
+	private static InputStreamReader input;
 	private static DataOutputStream output;
 
 	static {
@@ -41,7 +42,7 @@ public class Client {
 			this.s = new Socket(host, 21);
 			this.isConnected = true;
 			output = new DataOutputStream(s.getOutputStream());
-			input = new DataInputStream(s.getInputStream());
+			input = new InputStreamReader(s.getInputStream());
 			this.doProtocol("");
 		} catch(UnknownHostException e) {
 			System.out.println(e);
@@ -59,7 +60,7 @@ public class Client {
 			this.s = new Socket(host, 21);
 			this.isConnected = true;
 			output = new DataOutputStream(s.getOutputStream());
-			input = new DataInputStream(s.getInputStream());
+			input = new InputStreamReader(s.getInputStream());
 			this.doProtocol("");
 		} catch(UnknownHostException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
@@ -71,8 +72,9 @@ public class Client {
 
 	public void doProtocol(String cmd) {
 		try {
-			output.writeChars(cmd);
-			String response = input.readLine();
+			output.writeBytes(cmd);
+			BufferedReader r = new BufferedReader(input);
+			String response = r.readLine();
 			output.flush();
 			System.out.println(response);
 			LOGGER.info(response);

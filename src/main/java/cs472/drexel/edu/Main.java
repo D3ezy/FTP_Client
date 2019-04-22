@@ -38,8 +38,6 @@ public class Main {
 		while (isRunning) {	
 			switch(input.nextLine().toUpperCase()) {
 				case "USER":
-					c.doProtocol("user\r\n");
-					break;
 				/* The argument field is a Telnet string identifying the user.
 				The user identification is that which is required by the
 				server for access to its file system.  This command will
@@ -55,6 +53,8 @@ public class Main {
 				transfer parameters are unchanged and any file transfer in
 				progress is completed under the old access control
 				parameters. */
+					c.doProtocol("user cs472\r\n");
+					break;
 				case "PASS":
 				/* The argument field is a Telnet string specifying the user's
 				password.  This command must be immediately preceded by the
@@ -65,6 +65,8 @@ public class Main {
 				server has no foolproof way to achieve this.  It is
 				therefore the responsibility of the user-FTP process to hide
 				the sensitive password information. */
+					c.doProtocol("pass pass\r\n");
+					break;
 				case "CWD":
 				/* This command allows the user to work with a different
 				directory or dataset for file storage or retrieval without
