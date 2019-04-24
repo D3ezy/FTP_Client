@@ -7,6 +7,13 @@
  * CS 472 - HW2 - Computer Networks
  */
 
+ /*
+	IP ADDR: 10.246.250.233
+	USER: cs472
+	PASS: pass
+
+ */
+
 package cs472.drexel.edu;
 
 import java.util.ArrayList;
@@ -34,9 +41,12 @@ public class Main {
 
 		Scanner input = new Scanner(System.in);
 		boolean isRunning = true;
+		String cmd = null;
 
 		while (isRunning) {	
-			switch(input.nextLine().toUpperCase()) {
+			cmd = input.nextLine();			// get input from cmd 
+			String[] args = cmd.split(" "); // parse command by whitespace (for now).
+			switch(args[0].toUpperCase()) {
 				case "USER":
 				/* The argument field is a Telnet string identifying the user.
 				The user identification is that which is required by the
@@ -53,7 +63,13 @@ public class Main {
 				transfer parameters are unchanged and any file transfer in
 				progress is completed under the old access control
 				parameters. */
-					c.doProtocol("user cs472\r\n");
+					try {
+						c.doProtocol("user " + args[1] + "\r\n");
+					} catch(ArrayIndexOutOfBoundsException e) {
+						System.out.println("Error: Username not recognized, please supply a valid username.");
+						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
+						break;
+					}
 					break;
 				case "PASS":
 				/* The argument field is a Telnet string specifying the user's
@@ -65,7 +81,13 @@ public class Main {
 				server has no foolproof way to achieve this.  It is
 				therefore the responsibility of the user-FTP process to hide
 				the sensitive password information. */
-					c.doProtocol("pass pass\r\n");
+					try {
+						c.doProtocol("pass " + args[1] + "\r\n");
+					} catch(ArrayIndexOutOfBoundsException e) {
+						System.out.println("Error: Password not recognized, please try again.");
+						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
+						break;
+					}
 					break;
 				case "CWD":
 				/* This command allows the user to work with a different
@@ -74,6 +96,8 @@ public class Main {
 				parameters are similarly unchanged.  The argument is a
 				pathname specifying a directory or other system dependent
 				file group designator. */
+					c.doProtocol("cwd " + args[1] + "\r\n");
+					break;
 				case "PASV":
 				/* This command requests the server-DTP to "listen" on a data
 				port (which is not its default data port) and to wait for a
@@ -120,7 +144,9 @@ public class Main {
 				/* This command is used to find out the type of operating
             	system at the server.  The reply shall have as its first
             	word one of the system names listed in the current version
-            	of the Assigned Numbers document [4]. */
+				of the Assigned Numbers document [4]. */
+					c.doProtocol("system\r\n");
+					break;
 				case "LIST":
 				/* This command causes a list to be sent from the server to the
 				passive DTP.  If the pathname specifies a directory or other
@@ -134,6 +160,8 @@ public class Main {
 				Since the information on a file may vary widely from system
 				to system, this information may be hard to use automatically
 				in a program, but may be quite useful to a human user. */
+					c.doProtocol("ls " + args[1] + "\r\n");
+					break;
 				case "HELP":
 				/* This command shall cause the server to send helpful
 				information regarding its implementation status over the
@@ -156,6 +184,8 @@ public class Main {
 					An unexpected close on the control connection will cause the
 					server to take the effective action of an abort (ABOR) and a
 					logout (QUIT). */
+
+					// still need to do the file sending portion
 					isRunning = false;
 					break;
 				default:
