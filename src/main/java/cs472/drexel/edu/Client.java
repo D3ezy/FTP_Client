@@ -37,7 +37,8 @@ public class Client {
 		}
 	}
 	
-	// default constructor
+	// default constructor, used for testing
+	// no port or log file provided
 	Client(String host) {
 		try {
 			this.s = new Socket(host, 21);
@@ -46,11 +47,11 @@ public class Client {
 			input = new InputStreamReader(s.getInputStream());
 			this.doProtocol("");
 		} catch(UnknownHostException e) {
-			System.out.println(e);
+			// System.out.println(e);
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			this.isConnected = false;
 		} catch(IOException x) {
-			System.out.println(x);
+			// System.out.println(x);
 			LOGGER.log(Level.SEVERE, x.toString(), x);
 		} catch (SecurityException s) {
 			LOGGER.log(Level.SEVERE, s.toString(), s);
@@ -60,10 +61,10 @@ public class Client {
 	// alternative constructor host and port (other than default provided)
 	Client(String host, String log) {
 		try {
-			this.logfile = new FileHandler(log);
+			this.logfile = new FileHandler(log, true);
 			LOGGER.addHandler(logfile);
 			SimpleFormatter formatter = new SimpleFormatter();  
-			logfile.setFormatter(formatter); 
+			logfile.setFormatter(formatter);
 			this.s = new Socket(host, 21);
 			this.isConnected = true;
 			output = new DataOutputStream(s.getOutputStream());

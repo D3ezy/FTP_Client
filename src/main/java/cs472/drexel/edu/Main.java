@@ -28,8 +28,7 @@ public class Main {
 
 		// arg check
 		if (args.length != 2) {
-			LOGGER.log(Level.SEVERE, "Usage: java Client <ip addr> <log file>");
-			LOGGER.log(Level.SEVERE, "Usage: java Clien <ip addr> <log file>");
+			LOGGER.log(Level.SEVERE, "Usage: java -jar .\\build\\libs\\CS472-FTPClient-all-x.x.jar <ip addr> <log file>");
 			System.exit(1);
 		} 
 
@@ -67,7 +66,7 @@ public class Main {
 					try {
 						c.doProtocol("user " + args[1] + "\r\n");
 					} catch(ArrayIndexOutOfBoundsException e) {
-						System.out.println("Error: Username not recognized, please supply a valid username.");
+						// System.out.println("Error: Username not recognized, please supply a valid username.");
 						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
 						break;
 					}
@@ -85,7 +84,7 @@ public class Main {
 					try {
 						c.doProtocol("pass " + args[1] + "\r\n");
 					} catch(ArrayIndexOutOfBoundsException e) {
-						System.out.println("Error: Password not recognized, please try again.");
+						// System.out.println("Error: Password not recognized, please try again.");
 						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
 						break;
 					}
