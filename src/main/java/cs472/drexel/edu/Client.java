@@ -21,6 +21,7 @@ import java.io.InputStream;
 public class Client {
 
 	private static Logger LOGGER = null;
+	private FileHandler logfile;
 	private boolean isConnected;
 	private Socket s;
 	private static InputStreamReader input;
@@ -51,12 +52,18 @@ public class Client {
 		} catch(IOException x) {
 			System.out.println(x);
 			LOGGER.log(Level.SEVERE, x.toString(), x);
+		} catch (SecurityException s) {
+			LOGGER.log(Level.SEVERE, s.toString(), s);
 		}
 	}
 
 	// alternative constructor host and port (other than default provided)
 	Client(String host, String log) {
 		try {
+			this.logfile = new FileHandler(log);
+			LOGGER.addHandler(logfile);
+			SimpleFormatter formatter = new SimpleFormatter();  
+			logfile.setFormatter(formatter); 
 			this.s = new Socket(host, 21);
 			this.isConnected = true;
 			output = new DataOutputStream(s.getOutputStream());
@@ -76,7 +83,7 @@ public class Client {
 			BufferedReader r = new BufferedReader(input);
 			String response = r.readLine();
 			output.flush();
-			System.out.println(response);
+			// System.out.println(response);
 			LOGGER.info(response);
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);

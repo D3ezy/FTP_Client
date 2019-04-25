@@ -27,12 +27,13 @@ public class Main {
 	public static void main(String[] args) {
 
 		// arg check
-		if (args.length != 1) {
-			LOGGER.log(Level.SEVERE, "Usage: java Client <ip addr>");
+		if (args.length != 2) {
+			LOGGER.log(Level.SEVERE, "Usage: java Client <ip addr> <log file>");
+			LOGGER.log(Level.SEVERE, "Usage: java Clien <ip addr> <log file>");
 			System.exit(1);
 		} 
 
-		Client c = new Client(args[0]);
+		Client c = new Client(args[0], args[1]);
 		// c.doProtocol();
 		showMenu(c);
 	}
