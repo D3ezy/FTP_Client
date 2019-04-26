@@ -80,13 +80,13 @@ public class Client {
 	}
 
 	public void doProtocol(String cmd) {
-		int c;
+		String response = null;
 		try {
 			output.writeBytes(cmd);
 			String rem = cmd.replace("\r\n", "");
 			LOGGER.info("Sent: " + rem);
 			BufferedReader r = new BufferedReader(input);
-			String response = r.readLine();
+			response = r.readLine();
 			LOGGER.info("Received: " + response);
 			output.flush();
 		} catch(IOException e) {
