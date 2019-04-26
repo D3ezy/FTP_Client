@@ -8,6 +8,10 @@
  */
 
  /*
+
+	Local IP: 10.0.0.80
+
+
 	IP ADDR: 10.246.250.233
 	USER: cs472
 	PASS: pass
@@ -96,7 +100,11 @@ public class Main {
 				parameters are similarly unchanged.  The argument is a
 				pathname specifying a directory or other system dependent
 				file group designator. */
-					c.doProtocol("cwd " + args[1] + "\r\n");
+					try {
+						c.doProtocol("cwd " + args[1] + "\r\n");
+					} catch (ArrayIndexOutOfBoundsException e) {
+						LOGGER.log(Level.WARNING,"CWD cmd: Not a valid directory.", e);
+					}
 					break;
 				case "PASV":
 				/* This command requests the server-DTP to "listen" on a data
@@ -104,8 +112,20 @@ public class Main {
 				connection rather than initiate one upon receipt of a
 				transfer command.  The response to this command includes the
 				host and port address this server is listening on. */
+					try {
+						c.doProtocol("pasv\r\n");
+					} catch (Exception e) { // placeholder
+						e.printStackTrace();
+					}
+					break;
 				case "EPSV":
 				case "PORT":
+					try {
+						c.doProtocol("port\r\n");
+					} catch (Exception e) { // placeholder
+						e.printStackTrace();
+					}
+					break;
 				/* The argument is a HOST-PORT specification for the data port
 				to be used in data connection.  There are defaults for both
 				the user and server data ports, and under normal
@@ -136,16 +156,17 @@ public class Main {
 				created at the server site if the file specified in the
 				pathname does not already exist. */
 				case "PWD":
-					c.doProtocol("pwd\r\n");
-					break;
 				/* This command causes the name of the current working
 				directory to be returned in the reply.  See Appendix II. */
+					c.doProtocol("pwd\r\n");
+					break;
+
 				case "SYST":
 				/* This command is used to find out the type of operating
             	system at the server.  The reply shall have as its first
             	word one of the system names listed in the current version
 				of the Assigned Numbers document [4]. */
-					c.doProtocol("system\r\n");
+					c.doProtocol("syst\r\n");
 					break;
 				case "LIST":
 				/* This command causes a list to be sent from the server to the
@@ -160,7 +181,15 @@ public class Main {
 				Since the information on a file may vary widely from system
 				to system, this information may be hard to use automatically
 				in a program, but may be quite useful to a human user. */
-					c.doProtocol("ls " + args[1] + "\r\n");
+					try {
+						if (args.length < 2) {
+							c.doProtocol("list\r\n");
+						} else {
+							c.doProtocol("list " + args[1] + "\r\n");
+						}
+					} catch(ArrayIndexOutOfBoundsException e) {
+						LOGGER.log(Level.WARNING, "LIST cmd: Invalid Diirectory: Unable to List Files.", e);
+					}
 					break;
 				case "HELP":
 				/* This command shall cause the server to send helpful
@@ -174,23 +203,21 @@ public class Main {
 					printMenu();
 					break;
 				case "QUIT":
-					/* This command terminates a USER and if file transfer is not
-					in progress, the server closes the control connection.  If
-					file transfer is in progress, the connection will remain
-					open for result response and the server will then close it.
-					If the user-process is transferring files for several USERs
-					but does not wish to close and then reopen connections for
-					each, then the REIN command should be used instead of QUIT.
-					An unexpected close on the control connection will cause the
-					server to take the effective action of an abort (ABOR) and a
-					logout (QUIT). */
-
-					// still need to do the file sending portion
+				/* This command terminates a USER and if file transfer is not
+				in progress, the server closes the control connection.  If
+				file transfer is in progress, the connection will remain
+				open for result response and the server will then close it.
+				If the user-process is transferring files for several USERs
+				but does not wish to close and then reopen connections for
+				each, then the REIN command should be used instead of QUIT.
+				An unexpected close on the control connection will cause the
+				server to take the effective action of an abort (ABOR) and a
+				logout (QUIT). */
+				// still need to do the file sending portion
 					isRunning = false;
 					break;
 				default:
 					System.out.println("CMD_ERROR: Input not recognized, please try again. For usage type HELP");
-					System.out.println();
 			}
 		}
 

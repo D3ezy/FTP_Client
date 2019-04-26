@@ -69,7 +69,8 @@ public class Client {
 			this.isConnected = true;
 			output = new DataOutputStream(s.getOutputStream());
 			input = new InputStreamReader(s.getInputStream());
-			this.doProtocol("");
+			this.doProtocol("connecting to " + host);
+			this.doProtocol("Connected.\r\n");
 		} catch(UnknownHostException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			this.isConnected = false;
@@ -79,13 +80,15 @@ public class Client {
 	}
 
 	public void doProtocol(String cmd) {
+		int c;
 		try {
 			output.writeBytes(cmd);
+			String rem = cmd.replace("\r\n", "");
+			LOGGER.info("Sent: " + rem);
 			BufferedReader r = new BufferedReader(input);
 			String response = r.readLine();
+			LOGGER.info("Received: " + response);
 			output.flush();
-			// System.out.println(response);
-			LOGGER.info(response);
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			return;
