@@ -70,7 +70,6 @@ public class Main {
 					try {
 						c.doProtocol("user " + args[1] + "\r\n");
 					} catch(ArrayIndexOutOfBoundsException e) {
-						// System.out.println("Error: Username not recognized, please supply a valid username.");
 						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
 						break;
 					}
@@ -88,7 +87,6 @@ public class Main {
 					try {
 						c.doProtocol("pass " + args[1] + "\r\n");
 					} catch(ArrayIndexOutOfBoundsException e) {
-						// System.out.println("Error: Password not recognized, please try again.");
 						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
 						break;
 					}
@@ -106,26 +104,20 @@ public class Main {
 						LOGGER.log(Level.WARNING,"CWD cmd: Not a valid directory.", e);
 					}
 					break;
-				case "PASV":
+				case "PASV": // passive FTP
 				/* This command requests the server-DTP to "listen" on a data
 				port (which is not its default data port) and to wait for a
 				connection rather than initiate one upon receipt of a
 				transfer command.  The response to this command includes the
 				host and port address this server is listening on. */
 					try {
-						c.doProtocol("pasv\r\n");
+						c.enterPassiveMode();
 					} catch (Exception e) { // placeholder
 						e.printStackTrace();
 					}
 					break;
 				case "EPSV":
-				case "PORT":
-					try {
-						c.doProtocol("port\r\n");
-					} catch (Exception e) { // placeholder
-						e.printStackTrace();
-					}
-					break;
+				case "PORT": // active FTP
 				/* The argument is a HOST-PORT specification for the data port
 				to be used in data connection.  There are defaults for both
 				the user and server data ports, and under normal
@@ -141,12 +133,24 @@ public class Main {
 	
 				where h1 is the high order 8 bits of the internet host
 				address. */
+					try {
+						c.doProtocol("port\r\n");
+					} catch (Exception e) { // placeholder
+						e.printStackTrace();
+					}
+					break;
 				case "EPRT":
 				case "RETR":
 				/* This command causes the server-DTP to transfer a copy of the
 				file, specified in the pathname, to the server- or user-DTP
 				at the other end of the data connection.  The status and
 				contents of the file at the server site shall be unaffected. */
+					try {
+						c.doProtocol("RETR " + args[0] + "\r\n" );
+					} catch (IllegalArgumentException e) {
+						LOGGER.log(Level.WARNING,"RETR cmd: Not a valid file argument.", e);
+					}
+					break;
 				case "STOR":
 				/* This command causes the server-DTP to accept the data
 				transferred via the data connection and to store the data as
@@ -155,12 +159,17 @@ public class Main {
 				be replaced by the data being transferred.  A new file is
 				created at the server site if the file specified in the
 				pathname does not already exist. */
+					try {
+						c.doProtocol("STOR " + args[0] + "\r\n");
+					} catch(IllegalArgumentException e) {
+						LOGGER.log(Level.WARNING,"STOR cmd: Not a valid file argument.", e);
+					}
+					break;
 				case "PWD":
 				/* This command causes the name of the current working
 				directory to be returned in the reply.  See Appendix II. */
 					c.doProtocol("pwd\r\n");
 					break;
-
 				case "SYST":
 				/* This command is used to find out the type of operating
             	system at the server.  The reply shall have as its first
@@ -238,6 +247,10 @@ public class Main {
 
 		System.out.println();
 		return;
+	}
+
+	public static String intToHex(int n) {
+		return Integer.toHexString(n);
 	}
 
 }

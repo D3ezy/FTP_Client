@@ -23,6 +23,8 @@ public class Client {
 	private static Logger LOGGER = null;
 	private FileHandler logfile;
 	private boolean isConnected;
+	private DataConnection d;
+	private boolean inPassiveMode;
 	private Socket s;
 	private static InputStreamReader input;
 	private static DataOutputStream output;
@@ -34,27 +36,6 @@ public class Client {
 			LOGGER = Logger.getLogger(Client.class.getName());
   		} catch (IOException e) {
 			e.printStackTrace();
-		}
-	}
-	
-	// default constructor, used for testing
-	// no port or log file provided
-	Client(String host) {
-		try {
-			this.s = new Socket(host, 21);
-			this.isConnected = true;
-			output = new DataOutputStream(s.getOutputStream());
-			input = new InputStreamReader(s.getInputStream());
-			this.doProtocol("");
-		} catch(UnknownHostException e) {
-			// System.out.println(e);
-			LOGGER.log(Level.SEVERE, e.toString(), e);
-			this.isConnected = false;
-		} catch(IOException x) {
-			// System.out.println(x);
-			LOGGER.log(Level.SEVERE, x.toString(), x);
-		} catch (SecurityException s) {
-			LOGGER.log(Level.SEVERE, s.toString(), s);
 		}
 	}
 
@@ -94,6 +75,49 @@ public class Client {
 			return;
 		}
 		return;
+	}
+
+	// functions below for use with port/pasv commands for active/passive mode
+	// returns client socket port number
+	public void enterPassiveMode() {
+		String response;
+		String host;
+		int port;
+		try {
+			output.writeBytes("pasv\r\n");
+			LOGGER.info("Sent: pasv");
+			BufferedReader r = new BufferedReader(input);
+			response = r.readLine(); // read the response back from the server to get the IP it's listening on, create the data connection there
+			String[] args = response.split("");
+			host = args[0];
+			port = Integer.parseInt(args[1]);
+			LOGGER.info("enterPassiveMode: passive mode host: " + host);
+			LOGGER.info("enterPassiveMode: passive mode port: " + port);
+			d = new DataConnection(host, port);
+		} catch(IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		} catch(NumberFormatException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		}
+	}
+
+	protected int getPort() {
+		System.out.println("Client socket port number: " + s.getPort());
+		return s.getLocalPort();
+	}
+
+	// returns client socket host address 
+	protected String getHost() {
+		System.out.println("Client socket port number: " + s.getInetAddress());
+		return s.getInetAddress().toString();
+	}
+
+	protected boolean inPassive() {
+		return this.inPassiveMode;
+	}
+
+	private static String intToHex(int n) {
+		return Integer.toHexString(n);
 	}
 	
 }
