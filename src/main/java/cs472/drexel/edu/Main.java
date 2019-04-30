@@ -249,8 +249,4 @@ public class Main {
 		return;
 	}
 
-	public static String intToHex(int n) {
-		return Integer.toHexString(n);
-	}
-
 }
