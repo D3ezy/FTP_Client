@@ -21,6 +21,7 @@ import java.io.OutputStreamWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedInputStream;
 
@@ -32,8 +33,10 @@ public class Client {
 	private String dataHost;
 	private int dataPort;
 	private Socket s;
+	private boolean inPassive;
 	private static InputStreamReader input;
 	private static OutputStreamWriter output;
+	private static BufferedReader reader;
 
 	static {
 		InputStream stream = Client.class.getClassLoader().getResourceAsStream("logging.properties");
@@ -55,8 +58,9 @@ public class Client {
 			this.s = new Socket(host, 21);
 			output = new OutputStreamWriter(s.getOutputStream());
 			input = new InputStreamReader(s.getInputStream());
-			BufferedReader r = new BufferedReader(input);
-			LOGGER.info(r.readLine());
+			reader = new BufferedReader(input);
+			LOGGER.info(reader.readLine());
+			inPassive = false;
 			this.login();
 		} catch(UnknownHostException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
@@ -71,12 +75,8 @@ public class Client {
 			output.write("user " + un +"\r\n");
 			output.flush();
 			LOGGER.info("Sent: user " + un);
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
-				LOGGER.info("Received: " + response);
-			}
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			return;
@@ -90,12 +90,8 @@ public class Client {
 			output.write("pass " + pw + "\r\n");
 			output.flush();
 			LOGGER.info("Sent: pass " + pw);
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
-				LOGGER.info("Received: " + response);
-			}
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			return;
@@ -104,62 +100,111 @@ public class Client {
 	}
 
 	public void port() {
+		// get active client port
+		// parse client port to TCP math
+		// 
 		return;
 	}
 
 
-	public void retr(String filepath) {
-	}
-
-	public void stor(String filepath) throws FileNotFoundException, IOException {
-		File outfile = new File(filepath);
-		if (outfile.isDirectory()) {
-			LOGGER.log(Level.WARNING, "Supplied file is a directory.");
-			return;
-		}
-		String filename = outfile.getName();
-		this.stor(new FileInputStream(outfile), filename);
-		return;
-	}
-
-	private void stor(FileInputStream is, String filename) throws IOException {
-		BufferedInputStream in = new BufferedInputStream(is);
-		this.pasv();
-		BufferedReader r = new BufferedReader(input);
-		String response = r.readLine();
-		this.parseHostPort(response);
-		output.write("STOR " + filename);
-		Socket datasocket = new Socket(this.dataHost, this.dataPort);
-		BufferedOutputStream output = new BufferedOutputStream(datasocket.getOutputStream());
-    	byte[] buffer = new byte[4096];
-    	int bytesRead = 0;
-    	while ((bytesRead = in.read(buffer)) != -1) {
-     	 output.write(buffer, 0, bytesRead);
-    	}
-    	output.flush();
-    	output.close();
-    	input.close();
-		response = r.readLine();
-		return;
-	}
-
-	public void list(String directory) {
+	public void retr(String filename) {
 		try {
-			this.pasv();
-			BufferedReader r = new BufferedReader(input);
-			String response = r.readLine();
-			this.parseHostPort(response);
-			output.write("LIST " + directory + "\r\n");
-			Socket dataSocket = new Socket(this.dataHost, this.dataPort);
+			File f = new File("./" + filename);
+			String path = this.pwd() + "/" + filename;
+			if(inPassive) {
+				String response = this.pasv();
+				this.parseHostPort(response);
+			} else {
+				this.port();
+			}
+			output.write("RETR " + path + "\r\n");
+			Socket data_trans = new Socket(this.dataHost, this.dataPort);
+			BufferedInputStream in = new BufferedInputStream(data_trans.getInputStream());
+			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+			byte[] buf = new byte[4096];
+			int read;
+			while(in.available() > 0) {
+				read = in.read(buf);
+				out.write(buf, 0, read);
+			}
+			out.flush();
+			out.close();
+			in.close();
+			data_trans.close();
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 		}
 	}
 
-	public void pasv() throws IOException { 
-		output.write("pasv\r\n");
-		output.flush();
+	public void stor(String filepath) {
+		try {
+			File f = new File(filepath);
+			String filename = f.getName();
+			FileInputStream is = new FileInputStream(f);
+			BufferedInputStream in = new BufferedInputStream(is);
+			if(inPassive) {
+				String response = this.pasv();
+				this.parseHostPort(response);
+			} else {
+				this.port();
+			}
+			output.write("STOR " + filename+ "\r\n");
+			Socket data_trans = new Socket(this.dataHost, this.dataPort);
+			BufferedOutputStream out = new BufferedOutputStream(data_trans.getOutputStream());
+			byte[] buf = new byte[4096];
+			int read;
+			while(in.available() > 0) {
+				read = in.read(buf);
+				out.write(buf, 0, read);	
+			}
+			out.flush();
+			out.close();
+			in.close();
+			is.close();
+			data_trans.close();
+		} catch(FileNotFoundException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		} catch(IOException x) {
+			LOGGER.log(Level.SEVERE, x.toString(), x);
 		}
+		return;
+	}
+
+	public void list(String directory) {
+		try {
+			String response = this.pasv();
+			this.parseHostPort(response);
+			if (directory.equals("")) {
+				output.write("list\r\n");
+				output.flush();
+			} else {
+				output.write("LIST " + directory);
+				output.flush();
+			}
+			// response = reader.readLine();
+			// LOGGER.info("Received: " + response);
+			Socket data_trans = new Socket(this.dataHost, this.dataPort);
+			data_trans.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		}
+	}
+
+	public String pasv() { 
+		String response = null;
+		try {
+			output.write("pasv\r\n");
+			output.flush();
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
+			inPassive = true;
+			return response;
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		}
+		return response;
+
+	}
 
 	public void cwd(String directory) {
 		String response = null;
@@ -167,12 +212,8 @@ public class Client {
 			output.write("cwd " + directory + "\r\n");
 			output.flush();
 			LOGGER.info("Sent: cwd " + directory);
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
-				LOGGER.info("Received: " + response);
-			}
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			return;
@@ -181,23 +222,20 @@ public class Client {
 	}
 
 
-	public void pwd() {
+	public String pwd() {
 		String response = null;
 		try {
 			output.write("pwd\r\n");
 			output.flush();
 			LOGGER.info("Sent: pwd");
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
+			System.out.println(response);
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
-				LOGGER.info("Received: " + response);
-			}
+			return null;
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
-			return;
+			return null;
 		}
-		return;
 	}
 
 	public void help() {
@@ -206,10 +244,9 @@ public class Client {
 			output.write("help\r\n");
 			output.flush();
 			LOGGER.info("Sent: help");
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
+			while(reader.ready() && (response = reader.readLine()) != null) {
 				LOGGER.info("Received: " + response);
 			}
 		} catch(IOException e) {
@@ -225,12 +262,8 @@ public class Client {
 			output.write("syst\r\n");
 			output.flush();
 			LOGGER.info("Sent: syst");
-			BufferedReader r = new BufferedReader(input);
-			response = r.readLine();
+			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			while(r.ready() && (response = r.readLine()) != null) {
-				LOGGER.info("Received: " + response);
-			}
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 			return;

@@ -16,13 +16,12 @@
 	USER: cs472
 	PASS: pass
 
+	Test file: C:\Users\matth\Desktop\dey_test.txt
+
  */
 
 package cs472.drexel.edu;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -133,13 +132,11 @@ public class Main {
 				created at the server site if the file specified in the
 				pathname does not already exist. */
 					try {
-						c.stor(args[0]);
+						c.stor(args[1]);
 					} catch(IllegalArgumentException e) {
 						LOGGER.log(Level.WARNING,"STOR cmd: Not a valid file argument.", e);
-					} catch (FileNotFoundException x) {
-
-					} catch (IOException x) {
-
+					} catch(ArrayIndexOutOfBoundsException z) {
+						LOGGER.log(Level.WARNING, "STOR cmd: no file provided.");
 					}
 					break;
 				case "PWD":
@@ -169,7 +166,7 @@ public class Main {
 				in a program, but may be quite useful to a human user. */
 					try {
 						if (args.length < 2) {
-							c.list(null);
+							c.list("");
 						} else {
 							c.list(args[1]);
 						}
@@ -194,6 +191,9 @@ public class Main {
 				logout (QUIT). */
 					// still need to do the file sending portion
 					c.quit();
+					LOGGER.info("Goodbye.");
+					input.close();
+					isRunning = false;
 					break;
 				default:
 					System.out.println("CMD_ERROR: Input not recognized, please try again. For usage type HELP");
