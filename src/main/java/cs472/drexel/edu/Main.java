@@ -20,6 +20,9 @@
 
 package cs472.drexel.edu;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -52,54 +55,24 @@ public class Main {
 			String[] args = cmd.split(" "); // parse command by whitespace (for now).
 			switch(args[0].toUpperCase()) {
 				case "USER":
-				/* The argument field is a Telnet string identifying the user.
-				The user identification is that which is required by the
-				server for access to its file system.  This command will
-				normally be the first command transmitted by the user after
-				the control connections are made (some servers may require
-				this).  Additional identification information in the form of
-				a password and/or an account command may also be required by
-				some servers.  Servers may allow a new USER command to be
-				entered at any point in order to change the access control
-				and/or accounting information.  This has the effect of
-				flushing any user, password, and account information already
-				supplied and beginning the login sequence again.  All
-				transfer parameters are unchanged and any file transfer in
-				progress is completed under the old access control
-				parameters. */
 					try {
-						c.doProtocol("user " + args[1] + "\r\n");
+						c.user(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
 						break;
 					}
 					break;
 				case "PASS":
-				/* The argument field is a Telnet string specifying the user's
-				password.  This command must be immediately preceded by the
-				user name command, and, for some sites, completes the user's
-				identification for access control.  Since password
-				information is quite sensitive, it is desirable in general
-				to "mask" it or suppress typeout.  It appears that the
-				server has no foolproof way to achieve this.  It is
-				therefore the responsibility of the user-FTP process to hide
-				the sensitive password information. */
 					try {
-						c.doProtocol("pass " + args[1] + "\r\n");
+						c.pass(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
 						break;
 					}
 					break;
 				case "CWD":
-				/* This command allows the user to work with a different
-				directory or dataset for file storage or retrieval without
-				altering his login or accounting information.  Transfer
-				parameters are similarly unchanged.  The argument is a
-				pathname specifying a directory or other system dependent
-				file group designator. */
 					try {
-						c.doProtocol("cwd " + args[1] + "\r\n");
+						c.cwd(args[1]);
 					} catch (ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING,"CWD cmd: Not a valid directory.", e);
 					}
@@ -111,7 +84,7 @@ public class Main {
 				transfer command.  The response to this command includes the
 				host and port address this server is listening on. */
 					try {
-						c.enterPassiveMode();
+						c.pasv();
 					} catch (Exception e) { // placeholder
 						e.printStackTrace();
 					}
@@ -134,7 +107,7 @@ public class Main {
 				where h1 is the high order 8 bits of the internet host
 				address. */
 					try {
-						c.doProtocol("port\r\n");
+						c.port();
 					} catch (Exception e) { // placeholder
 						e.printStackTrace();
 					}
@@ -146,7 +119,7 @@ public class Main {
 				at the other end of the data connection.  The status and
 				contents of the file at the server site shall be unaffected. */
 					try {
-						c.doProtocol("RETR " + args[0] + "\r\n" );
+						c.retr(args[0]);
 					} catch (IllegalArgumentException e) {
 						LOGGER.log(Level.WARNING,"RETR cmd: Not a valid file argument.", e);
 					}
@@ -160,22 +133,26 @@ public class Main {
 				created at the server site if the file specified in the
 				pathname does not already exist. */
 					try {
-						c.doProtocol("STOR " + args[0] + "\r\n");
+						c.stor(args[0]);
 					} catch(IllegalArgumentException e) {
 						LOGGER.log(Level.WARNING,"STOR cmd: Not a valid file argument.", e);
+					} catch (FileNotFoundException x) {
+
+					} catch (IOException x) {
+
 					}
 					break;
 				case "PWD":
 				/* This command causes the name of the current working
 				directory to be returned in the reply.  See Appendix II. */
-					c.doProtocol("pwd\r\n");
+					c.pwd();
 					break;
 				case "SYST":
 				/* This command is used to find out the type of operating
             	system at the server.  The reply shall have as its first
             	word one of the system names listed in the current version
 				of the Assigned Numbers document [4]. */
-					c.doProtocol("syst\r\n");
+					c.systemInfo();
 					break;
 				case "LIST":
 				/* This command causes a list to be sent from the server to the
@@ -192,23 +169,16 @@ public class Main {
 				in a program, but may be quite useful to a human user. */
 					try {
 						if (args.length < 2) {
-							c.doProtocol("list\r\n");
+							c.list(null);
 						} else {
-							c.doProtocol("list " + args[1] + "\r\n");
+							c.list(args[1]);
 						}
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING, "LIST cmd: Invalid Diirectory: Unable to List Files.", e);
 					}
 					break;
 				case "HELP":
-				/* This command shall cause the server to send helpful
-				information regarding its implementation status over the
-				control connection to the user.  The command may take an
-				argument (e.g., any command name) and return more specific
-				information as a response.  The reply is type 211 or 214.
-				It is suggested that HELP be allowed before entering a USER
-				command. The server may use this reply to specify
-				site-dependent parameters, e.g., in response to HELP SITE. */
+					// c.doProtocol("help\r\n");
 					printMenu();
 					break;
 				case "QUIT":
@@ -222,8 +192,8 @@ public class Main {
 				An unexpected close on the control connection will cause the
 				server to take the effective action of an abort (ABOR) and a
 				logout (QUIT). */
-				// still need to do the file sending portion
-					isRunning = false;
+					// still need to do the file sending portion
+					c.quit();
 					break;
 				default:
 					System.out.println("CMD_ERROR: Input not recognized, please try again. For usage type HELP");
