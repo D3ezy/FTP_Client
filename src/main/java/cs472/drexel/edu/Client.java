@@ -5,6 +5,10 @@
  * Date Created: April 15th, 2019
  * Drexel University
  * CS 472 - HW2 - Computer Networks
+ * 
+ * 
+ * Commented out all of the java.util.Logging statements
+ * 
  */
 
 package cs472.drexel.edu;
@@ -15,8 +19,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.util.logging.*;
-import java.io.InputStream;
 import java.util.Scanner;
 import java.io.OutputStreamWriter;
 import java.io.File;
@@ -26,8 +28,6 @@ import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedInputStream;
 import java.util.regex.*;
-import java.net.SocketException;
-
 
 public class Client {
 
@@ -36,7 +36,6 @@ public class Client {
 	private boolean portActive;
 	private boolean epsvActive;
 	private static Logger LOGGER = null;
-	private FileHandler logfile;
 	private String hostname;
 	private ServerSocket ss;
 	private int serverport;
@@ -47,23 +46,10 @@ public class Client {
 	private static OutputStreamWriter output;
 	private static BufferedReader reader;
 
-	static {
-		InputStream stream = Client.class.getClassLoader().getResourceAsStream("logging.properties");
-		try {
-			LogManager.getLogManager().readConfiguration(stream);
-			LOGGER = Logger.getLogger(Client.class.getName());
-  		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 	// alternative constructor host and port (other than default provided)
 	Client(String host, String log) {
 		try {
-			this.logfile = new FileHandler(log, true);
-			LOGGER.addHandler(logfile);
-			SimpleFormatter formatter = new SimpleFormatter();  
-			logfile.setFormatter(formatter);
+			LOGGER = new Logger(log);
 			this.s = new Socket(host, 21);
 			output = new OutputStreamWriter(s.getOutputStream());
 			input = new InputStreamReader(s.getInputStream());
@@ -73,12 +59,14 @@ public class Client {
 			eprtActive = false;
 			portActive = false;
 			epsvActive = false;
-			LOGGER.info(reader.readLine());
+			LOGGER.log(reader.readLine());
 			this.login();
 		} catch(UnknownHostException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		} catch(IOException x) {
-			LOGGER.log(Level.SEVERE, x.toString(), x);
+			LOGGER.log(x.toString());
+			LOGGER.log("Unable to connection socket, please try a different IP address.");
+			return;
 		}
 	}
 
@@ -87,11 +75,11 @@ public class Client {
 		try {
 			output.write("user " + un +"\r\n");
 			output.flush();
-			LOGGER.info("Sent: user " + un);
+			LOGGER.log("Sent: user " + un);
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		}
 		return;
@@ -102,11 +90,11 @@ public class Client {
 		try {
 			output.write("pass " + pw + "\r\n");
 			output.flush();
-			LOGGER.info("Sent: pass " + pw);
+			LOGGER.log("Sent: pass " + pw);
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		}
 		return;
@@ -117,9 +105,9 @@ public class Client {
 		try {
 			output.write("port " + tcp + "\r\n");
 			output.flush();
-			LOGGER.info("Sent: port " + tcp);
+			LOGGER.log("Sent: port " + tcp);
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			// create a listening socket on the port from the port command
 			String[] values = tcp.split(",");
 			serverport = getPort(values[4], values[5]);
@@ -130,7 +118,7 @@ public class Client {
 			eprtActive = false;
 			epsvActive = false;
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 		return;
 	}
@@ -149,9 +137,9 @@ public class Client {
 		try {
 			output.write("eprt " + tcp + "\r\n");
 			output.flush();
-			LOGGER.info("Sent: eprt " + tcp);
+			LOGGER.log("Sent: eprt " + tcp);
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			serverport = Integer.parseInt(values[3]);
 			System.out.println(serverport);
 			ss = new ServerSocket(serverport);
@@ -160,10 +148,10 @@ public class Client {
 			eprtActive = true;
 			epsvActive = false;
 		} catch(NumberFormatException e) {
-			LOGGER.info("Illegal use of EPRT command. Please use the same delimiter and only numerical values. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
+			LOGGER.log("Illegal use of EPRT command. Please use the same delimiter and only numerical values. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
 			return;
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		} 
 	}
@@ -173,7 +161,7 @@ public class Client {
 		String response;
 		try {
 			File f = new File("./" + filename);
-			LOGGER.info("File created: " + filename);
+			LOGGER.log("File created: " + filename);
 			String path = this.pwd() + "/" + filename;
 			if (!eprtActive && !portActive && !epsvActive && !pasvActive) { // if none of the port, eprt, epsv, or pasv commands have been used already, default to pasv.
 				this.pasv();
@@ -183,13 +171,13 @@ public class Client {
 				output.flush();
 				Socket ftpServer = ss.accept();
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
 				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
 				byte[] bufSize = new byte[4096];
 				int bytesRead;
 				while((bytesRead = fromServer.read(bufSize)) != -1) {
-					LOGGER.info("Bytes read from server: " + bytesRead);
+					LOGGER.log("Bytes read from server: " + bytesRead);
 					out.write(bufSize, 0, bytesRead);
 				}
 				out.flush();
@@ -201,13 +189,13 @@ public class Client {
 				output.flush();
 				Socket data_trans = new Socket(this.dataHost, this.dataPort);
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				BufferedInputStream fromServer = new BufferedInputStream(data_trans.getInputStream());
 				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
 				byte[] bufSize = new byte[4096];
 				int bytesRead;
 				while((bytesRead = fromServer.read(bufSize)) != -1) {
-					LOGGER.info("Bytes read from server: " + bytesRead);
+					LOGGER.log("Bytes read from server: " + bytesRead);
 					out.write(bufSize, 0, bytesRead);
 				}
 				out.flush();
@@ -217,9 +205,9 @@ public class Client {
 			}
 			pasvActive = false;
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 	}
 
@@ -239,7 +227,7 @@ public class Client {
 				output.flush();
 				Socket ftpServer = ss.accept();
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				BufferedOutputStream out = new BufferedOutputStream(ftpServer.getOutputStream());
 				byte[] bufSize = new byte[4096];
 				int read;
@@ -257,7 +245,7 @@ public class Client {
 				output.flush();
 				Socket data_trans = new Socket(this.dataHost, this.dataPort);
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				BufferedOutputStream out = new BufferedOutputStream(data_trans.getOutputStream());
 				byte[] bufSize = new byte[4096];
 				int read;
@@ -273,11 +261,11 @@ public class Client {
 			}
 			pasvActive = false;
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch(FileNotFoundException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		} catch(IOException x) {
-			LOGGER.log(Level.SEVERE, x.toString(), x);
+			LOGGER.log(x.toString());
 		}
 		return;
 	}
@@ -299,13 +287,13 @@ public class Client {
 				Socket ftpServer = ss.accept();
 				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				String received;
 				byte[] bufSize = new byte[4096]; // Create a buffer to read in from data socket
 				int bytesRead;
 				while((bytesRead = fromServer.read(bufSize)) != -1) {
 					received = new String(bufSize,0,bytesRead);
-					LOGGER.info("Directory Listing. Received: " + bytesRead + " bytes.");
+					LOGGER.log("Directory Listing. Received: " + bytesRead + " bytes.");
 					System.out.println(received);
 				}
 				fromServer.close();
@@ -321,13 +309,13 @@ public class Client {
 				Socket data_trans = new Socket(this.dataHost, this.dataPort);
 				BufferedInputStream fromServer = new BufferedInputStream(data_trans.getInputStream());
 				response = reader.readLine();
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 				String received;
 				byte[] bufSize = new byte[4096]; // Create a buffer to read in from data socket
 				int bytesRead;
 				while((bytesRead = fromServer.read(bufSize)) != -1) {
 					received = new String(bufSize,0,bytesRead);
-					LOGGER.info("Directory Listing. Received: " + bytesRead + " bytes.");
+					LOGGER.log("Directory Listing. Received: " + bytesRead + " bytes.");
 					System.out.println(received);
 				}
 				fromServer.close();
@@ -335,9 +323,9 @@ public class Client {
 			}
 			pasvActive = false;
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 	}
 
@@ -352,7 +340,7 @@ public class Client {
 				output.flush();
 			}
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			this.getEPSVPort(response);
 			pasvActive = false;
 			portActive = false;
@@ -360,7 +348,7 @@ public class Client {
 			epsvActive = true;
 			return;
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 		return;
 	}
@@ -371,7 +359,7 @@ public class Client {
 			output.write("pasv\r\n");
 			output.flush();
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			this.parseHostPort(response);
 			pasvActive = true;
 			portActive = false;
@@ -379,7 +367,8 @@ public class Client {
 			epsvActive = false;
 			return;
 		} catch (IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			// LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 		return;
 
@@ -390,11 +379,11 @@ public class Client {
 		try {
 			output.write("cwd " + directory + "\r\n");
 			output.flush();
-			LOGGER.info("Sent: cwd " + directory);
+			LOGGER.log("Sent: cwd " + directory);
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		}
 		return;
@@ -405,9 +394,9 @@ public class Client {
 		try {
 			output.write("pwd\r\n");
 			output.flush();
-			LOGGER.info("Sent: pwd");
+			LOGGER.log("Sent: pwd");
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			Pattern p = Pattern.compile("\"([^\"]*)\"");
 			Matcher m = p.matcher(response);
 			while (m.find()) {
@@ -415,7 +404,7 @@ public class Client {
 			}
 			return null;
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return null;
 		}
 	}
@@ -425,14 +414,14 @@ public class Client {
 		try {
 			output.write("help\r\n");
 			output.flush();
-			LOGGER.info("Sent: help");
+			LOGGER.log("Sent: help");
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 			while(reader.ready() && (response = reader.readLine()) != null) {
-				LOGGER.info("Received: " + response);
+				LOGGER.log("Received: " + response);
 			}
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		}
 		return;
@@ -443,11 +432,11 @@ public class Client {
 		try {
 			output.write("syst\r\n");
 			output.flush();
-			LOGGER.info("Sent: syst");
+			LOGGER.log("Sent: syst");
 			response = reader.readLine();
-			LOGGER.info("Received: " + response);
+			LOGGER.log("Received: " + response);
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 			return;
 		}
 		return;
@@ -494,7 +483,7 @@ public class Client {
 			output.write("quit\r\n");
 			this.s.close();
 		} catch(IOException e) {
-			LOGGER.log(Level.SEVERE, e.toString(), e);
+			LOGGER.log(e.toString());
 		}
 	}
 }

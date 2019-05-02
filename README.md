@@ -38,8 +38,7 @@ RETR    EPRT    PWD
 STOR    PASV    LIST
 QUIT    EPSV
 
-The main method instantiates a new connection and a scanner object to take input from the command line and act on the client based on the command given. Selecting "HELP" will print out a menu of available commands that you can use. Both objects use the java.util.Logger library that outputs all commands sent and received to the indicated log file as an
-input parameter.
+The main method instantiates a new connection and a scanner object to take input from the command line and act on the client based on the command given. Selecting "HELP" will print out a menu of available commands that you can use. Both objects use a Logger object that outputs all commands sent and received to the indicated log file as an input parameter.
 
 Client.java
 

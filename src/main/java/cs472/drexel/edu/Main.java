@@ -25,16 +25,17 @@ package cs472.drexel.edu;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
-import java.util.logging.*;
+// import java.util.logging.*;
 
 public class Main {
 
-	private static final Logger LOGGER = Logger.getLogger( Main.class.getName() );
+	// private static final Logger LOGGER = Logger.getLogger( Main.class.getName() );
+	private static Logger LOGGER = new Logger("./main.log");
 	public static void main(String[] args) {
 
 		// arg check
 		if (args.length != 2) {
-			LOGGER.log(Level.SEVERE, "Usage: java -jar .\\build\\libs\\CS472-FTPClient-all-x.x.jar <ip addr> <log file>");
+			LOGGER.log("Usage: java -jar .\\build\\libs\\CS472-FTPClient-all-x.x.jar <ip addr> <log file>");
 			System.exit(1);
 		} 
 
@@ -56,21 +57,21 @@ public class Main {
 					try {
 						c.user(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
-						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
+						LOGGER.log("USER cmd: No username supplied");
 					}
 					break;
 				case "PASS":
 					try {
 						c.pass(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
-						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
+						LOGGER.log("PASS cmd: Invalid password.");
 					}
 					break;
 				case "CWD":
 					try {
 						c.cwd(args[1]);
 					} catch (ArrayIndexOutOfBoundsException e) {
-						LOGGER.log(Level.WARNING,"CWD cmd: Not a valid directory.", e);
+						LOGGER.log("CWD cmd: Not a valid directory.");
 					}
 					break;
 				case "PASV": // passive FTP
@@ -87,36 +88,21 @@ public class Main {
 						} else if (args.length == 2) {
 							c.epsv(args[1]);
 						} else {
-							LOGGER.log(Level.WARNING, "EPSV cmd: Invalid EPSV cmd. Usage: EPSV<space><net-prt> OR EPSV<space>ALL");
+							LOGGER.log("EPSV cmd: Invalid EPSV cmd. Usage: EPSV<space><net-prt> OR EPSV<space>ALL");
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
 					break;
 				case "PORT": // active FTP
-				/* The argument is a HOST-PORT specification for the data port
-				to be used in data connection.  There are defaults for both
-				the user and server data ports, and under normal
-				circumstances this command and its reply are not needed.  If
-				this command is used, the argument is the concatenation of a
-				32-bit internet host address and a 16-bit TCP port address.
-				This address information is broken into 8-bit fields and the
-				value of each field is transmitted as a decimal number (in
-				character string representation).  The fields are separated
-				by commas.  A port command would be:
-	
-				   PORT h1,h2,h3,h4,p1,p2
-	
-				where h1 is the high order 8 bits of the internet host
-				address. */
 					try {
 						if (args.length == 2) {
 							c.port(args[1]);
 						} else {
-							LOGGER.log(Level.WARNING, "PORT cmd: Invalid PORT cmd, please specify correct TCP address following the PORT command.");
+							LOGGER.log("PORT cmd: Invalid PORT cmd, please specify correct TCP address following the PORT command.");
 						}
 					} catch (IllegalArgumentException e) {
-						LOGGER.log(Level.SEVERE, e.toString(), e);
+						LOGGER.log(e.toString());
 					}
 					break;
 				case "EPRT":
@@ -124,7 +110,7 @@ public class Main {
 						if (args.length == 2) {
 							c.eprt(args[1]);
 						} else {
-							LOGGER.log(Level.WARNING, "EPRT cmd: Invalid EPRT cmd. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
+							LOGGER.log("EPRT cmd: Invalid EPRT cmd. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
 						}
 					} catch(Exception e) {
 						e.printStackTrace();
@@ -134,16 +120,16 @@ public class Main {
 					try {
 						c.retr(args[1]);
 					} catch (IllegalArgumentException e) {
-						LOGGER.log(Level.WARNING,"RETR cmd: Not a valid file argument.", e);
+						LOGGER.log("RETR cmd: Not a valid file argument.");
 					}
 					break;
 				case "STOR":
 					try {
 						c.stor(args[1]);
 					} catch(IllegalArgumentException e) {
-						LOGGER.log(Level.WARNING,"STOR cmd: Not a valid file argument.", e);
+						LOGGER.log("STOR cmd: Not a valid file argument.");
 					} catch(ArrayIndexOutOfBoundsException z) {
-						LOGGER.log(Level.WARNING, "STOR cmd: no file provided.");
+						LOGGER.log("STOR cmd: no file provided.");
 					}
 					break;
 				case "PWD":
@@ -160,7 +146,7 @@ public class Main {
 							c.list(args[1]);
 						}
 					} catch(ArrayIndexOutOfBoundsException e) {
-						LOGGER.log(Level.WARNING, "LIST cmd: Invalid Diirectory: Unable to List Files.", e);
+						LOGGER.log("LIST cmd: Invalid Diirectory: Unable to List Files.");
 					}
 					break;
 				case "HELP":
@@ -169,7 +155,7 @@ public class Main {
 					break;
 				case "QUIT":
 					c.quit();
-					LOGGER.info("Goodbye.");
+					LOGGER.log("Goodbye.");
 					input.close();
 					isRunning = false;
 					break;
