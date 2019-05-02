@@ -5,6 +5,7 @@
  * Date Created: May 2nd, 2019
  * Drexel University
  * CS 472 - HW2 - Computer Networks
+ * 
  */
 
 package cs472.drexel.edu;
@@ -20,10 +21,12 @@ public class Logger {
 
     private String path;
 
+    // Create a new logger with the logger path
     Logger(String filepath) {
         path = filepath;
     }
 
+    // Log (with timestamp) the responses and input sent by the function call.
     public void log(String s) {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"); 
         LocalDateTime now = LocalDateTime.now();

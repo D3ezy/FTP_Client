@@ -46,16 +46,17 @@ public class Client {
 	private static OutputStreamWriter output;
 	private static BufferedReader reader;
 
-	// alternative constructor host and port (other than default provided)
+	// alternative constructor host and log file provided (uses default port)
 	Client(String host, String log) {
 		try {
 			LOGGER = new Logger(log);
 			this.s = new Socket(host, 21);
+			// initialize new data readers from socket streams
 			output = new OutputStreamWriter(s.getOutputStream());
 			input = new InputStreamReader(s.getInputStream());
 			reader = new BufferedReader(input);
 			hostname = host;
-			pasvActive = false;
+			pasvActive = false; // set all transfer methods to false (nothing has been activated yet)
 			eprtActive = false;
 			portActive = false;
 			epsvActive = false;
@@ -70,6 +71,10 @@ public class Client {
 		}
 	}
 
+	/*
+		Sends user command to FTP Server to authenticate the user. Reads the response
+		from the server (which should be asking for a password).
+	*/
 	public void user(String un) {
 		String response = null;
 		try {
@@ -85,6 +90,10 @@ public class Client {
 		return;
 	}
 
+	/*
+		Sends "pass" command to the FTP Server, which finishes the authetication handshake. The user
+		will get a reply after this function is called that they are either logged in or not recognized.
+	*/
 	public void pass(String pw) {
 		String response = null;
 		try {
@@ -100,9 +109,17 @@ public class Client {
 		return;
 	}
 
+
+	/*
+		Sends the "port" command to the FTP Server, parses the TCP header and port number
+		from the command and asks the server to try to connect to the client on the specified
+		port and host for data transfer (instead of the default). Makes the PORT command the active
+		data transfer command. 
+	*/
 	public void port(String tcp) {
 		String response;
 		try {
+			// send port command
 			output.write("port " + tcp + "\r\n");
 			output.flush();
 			LOGGER.log("Sent: port " + tcp);
@@ -131,6 +148,13 @@ public class Client {
 		EPRT |1|132.235.1.2|6275|
         EPRT |2|1080::8:800:200C:417A|5282|
 	*/
+	/*
+		From the update RFC 2428, implements the "eprt" command which parses
+		the configuration sent by the user delineated by "|" pipe symbols. Examples are 
+		above.
+
+		NOTE: This function terminates the communication connection due to firewall restrictions.
+	*/
 	public void eprt(String tcp) {
 		String[] values = tcp.split("\\|");
 		String response;
@@ -157,6 +181,11 @@ public class Client {
 	}
 
 
+	/*
+		Retrieves the specified file from the server. Response code depends on if the file exists or not on
+		the server. Opens a data connection depending on the active data connection type (active, passive, eprt, epsv).
+		Accepts the data from the data connection and writes the buffer from a file until there is no more data to be read.
+	*/
 	public void retr(String filename) {
 		String response;
 		try {
@@ -211,6 +240,10 @@ public class Client {
 		}
 	}
 
+	/*
+		Stores a file on the FTP Server, opens a data connection and reads the specified file (if it exists) and sends
+		those byes to the data connection opened by the server (based on the active data transfer type).
+	*/
 	// by default use passive mode, unless the user specifies eprt, port, or epsv
 	public void stor(String filepath) {
 		String response;
@@ -223,6 +256,7 @@ public class Client {
 				this.pasv();
 			}
 			if (portActive || eprtActive) { // if active mode is enabled
+				// send stor command and start listening on port command specified addresses.
 				output.write("STOR " + filename + "\r\n");
 				output.flush();
 				Socket ftpServer = ss.accept();
@@ -235,12 +269,13 @@ public class Client {
 					read = in.read(bufSize);
 					out.write(bufSize, 0, read);	
 				}
+				// close connections.
 				out.flush();
 				out.close();
 				in.close();
 				is.close();
 				ftpServer.close();
-			} else {
+			} else { // passive modes are enabled
 				output.write("STOR " + filename + "\r\n");
 				output.flush();
 				Socket data_trans = new Socket(this.dataHost, this.dataPort);
@@ -253,6 +288,7 @@ public class Client {
 					read = in.read(bufSize);
 					out.write(bufSize, 0, read);	
 				}
+				// close connections.
 				out.flush();
 				out.close();
 				in.close();
@@ -270,6 +306,11 @@ public class Client {
 		return;
 	}
 
+	/*
+		Opens a data connection to retrieve a list of files in the directory specified from the server. Think LS command
+		over Linux. Depending on the active type of data connection the server communication let's the client know when the 
+		data is sent. 
+	*/
 	public void list(String directory) {
 		String response;
 		try {
@@ -329,19 +370,24 @@ public class Client {
 		}
 	}
 
+	/*
+		Allows the user to enter "extended passive mode"
+	*/
 	public void epsv(String arg) {
 		String response = null;
 		try {
 			if (arg.equals("")) {
 				output.write("epsv\r\n");
 				output.flush();
-			} else {
+			} else { // epsv allows the ALL argument
 				output.write("epsv " + arg + "\r\n");
 				output.flush();
 			}
 			response = reader.readLine();
 			LOGGER.log("Received: " + response);
+			// get the port from the response of the epsv command
 			this.getEPSVPort(response);
+			// changes the active data transfer method to epsv
 			pasvActive = false;
 			portActive = false;
 			eprtActive = false;
@@ -353,6 +399,9 @@ public class Client {
 		return;
 	}
 
+	/*
+		Allows the users to enter "Passive Mode"
+	*/
 	public void pasv() { 
 		String response = null;
 		try {
@@ -374,6 +423,9 @@ public class Client {
 
 	}
 
+	/*
+		Allows the user to change the current working directory of the FTP Site
+	*/
 	public void cwd(String directory) {
 		String response = null;
 		try {
@@ -389,6 +441,9 @@ public class Client {
 		return;
 	}
 
+	/*
+		Sends the "print working directory" (pwd) command to the FTP site.
+	*/
 	public String pwd() {
 		String response = null;
 		try {
@@ -409,6 +464,8 @@ public class Client {
 		}
 	}
 
+	// Not used because there are many more commands the this prints out on the FTP side than
+	// are implemented. See "help" in Main.java.
 	public void help() {
 		String response = null;
 		try {
@@ -427,6 +484,10 @@ public class Client {
 		return;
 	}
 
+	/*
+		Runs the system command and returns the system information from the
+		FTP site.
+	*/
 	public void systemInfo() {
 		String response = null;
 		try {
@@ -450,6 +511,8 @@ public class Client {
 		return port;
 	}
 
+	// Parses the host and port addresses returned by
+	// PASV
 	private void parseHostPort(String s) {
 		String[] paren = s.split("[\\(\\)]");
 		String[] numbers = paren[1].split(",");
@@ -458,6 +521,7 @@ public class Client {
 		return;
 	}
 
+	// parses the EPASV Port returned by the server.
 	private void getEPSVPort(String str) {
 		String[] bars = str.split("[\\|\\|]");
 		dataPort = Integer.parseInt(bars[3]);
@@ -465,6 +529,10 @@ public class Client {
 		return;
 	}
 
+	/*
+		Cleaner UI for Logging in to the FTP Site. Sends
+		the USER and PASS commands for the user.
+	*/
 	public void login() {
 		Scanner s = new Scanner(System.in);
 		String username, password;
@@ -478,6 +546,11 @@ public class Client {
 		
 	}
 
+	/*
+		Used to terminate connections and quit the server. Normally 
+		the connection will wait until it is no longer receiving data, however since
+		this program is not multi-threaded, you cannot quit until the transfer is done.
+	*/
 	public void quit() {
 		try {
 			output.write("quit\r\n");

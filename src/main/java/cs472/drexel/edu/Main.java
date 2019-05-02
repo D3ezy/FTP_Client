@@ -25,7 +25,6 @@ package cs472.drexel.edu;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
-// import java.util.logging.*;
 
 public class Main {
 
@@ -39,6 +38,7 @@ public class Main {
 			System.exit(1);
 		} 
 
+		// Initialize a new client and show the menu
 		Client c = new Client(args[0], args[1]);
 		showMenu(c);
 	}
@@ -54,6 +54,7 @@ public class Main {
 			String[] args = cmd.split(" "); // parse command by whitespace (for now).
 			switch(args[0].toUpperCase()) {
 				case "USER":
+					// Submit new username
 					try {
 						c.user(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
@@ -61,17 +62,20 @@ public class Main {
 					}
 					break;
 				case "PASS":
+					// submit new password
 					try {
 						c.pass(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log("PASS cmd: Invalid password.");
 					}
 					break;
+				case "CD":
 				case "CWD":
+					// changes directory on ftp server
 					try {
 						c.cwd(args[1]);
 					} catch (ArrayIndexOutOfBoundsException e) {
-						LOGGER.log("CWD cmd: Not a valid directory.");
+						LOGGER.log("CD cmd: Not a valid directory.");
 					}
 					break;
 				case "PASV": // passive FTP
@@ -82,6 +86,7 @@ public class Main {
 					}
 					break;
 				case "EPSV":
+					// extended passive (supports ipv6)
 					try {
 						if (args.length < 2) {
 							c.epsv("");
@@ -106,6 +111,7 @@ public class Main {
 					}
 					break;
 				case "EPRT":
+					// extended port
 					try {
 						if (args.length == 2) {
 							c.eprt(args[1]);
@@ -116,14 +122,18 @@ public class Main {
 						e.printStackTrace();
 					}
 					break;
+				case "GET":
 				case "RETR":
+					// Retrieves a file
 					try {
 						c.retr(args[1]);
 					} catch (IllegalArgumentException e) {
 						LOGGER.log("RETR cmd: Not a valid file argument.");
 					}
 					break;
+				case "PUT":
 				case "STOR":
+					// Stores a file
 					try {
 						c.stor(args[1]);
 					} catch(IllegalArgumentException e) {
@@ -136,9 +146,13 @@ public class Main {
 					c.pwd();
 					break;
 				case "SYST":
+				case "SYSTEM":
+					// Returns the system information of the FTP server.
 					c.systemInfo();
 					break;
+				case "LS":
 				case "LIST":
+					// Runs the list command if the proper arguments are used.
 					try {
 						if (args.length < 2) {
 							c.list("");
@@ -146,14 +160,17 @@ public class Main {
 							c.list(args[1]);
 						}
 					} catch(ArrayIndexOutOfBoundsException e) {
-						LOGGER.log("LIST cmd: Invalid Diirectory: Unable to List Files.");
+						LOGGER.log("LS cmd: Invalid Diirectory: Unable to List Files.");
 					}
 					break;
 				case "HELP":
+					// Print the HELP Menu
 					// c.doProtocol("help\r\n");
 					printMenu();
 					break;
 				case "QUIT":
+					// Runs the quit command to terminate the connection from the FTP Server
+					// exits the program as well. 
 					c.quit();
 					LOGGER.log("Goodbye.");
 					input.close();
@@ -167,11 +184,16 @@ public class Main {
 		return;
 	}
 
+	/*
+		Used when the user enters the "HELP" command. This is a list of all the implemented commands on the 
+		FTP site as well as pseudocommands that the user is able to enter in. This menu will not show up unless the user types
+		and submits the HELP command.
+	*/
 	public static void printMenu() {
-		ArrayList<String> cmd_col1 = new ArrayList<>(Arrays.asList("USER","PASS","CWD"));
-		ArrayList<String> cmd_col2 = new ArrayList<>(Arrays.asList("LIST","PASV","EPSV"));
-		ArrayList<String> cmd_col3 = new ArrayList<>(Arrays.asList("PORT","EPRT", "RETR"));
-		ArrayList<String> cmd_col4 = new ArrayList<>(Arrays.asList("STOR","PWD", "SYST"));
+		ArrayList<String> cmd_col1 = new ArrayList<>(Arrays.asList("USER","PASS","CD"));
+		ArrayList<String> cmd_col2 = new ArrayList<>(Arrays.asList("LS","PASV","EPSV"));
+		ArrayList<String> cmd_col3 = new ArrayList<>(Arrays.asList("PORT","EPRT", "GET"));
+		ArrayList<String> cmd_col4 = new ArrayList<>(Arrays.asList("PUT","PWD", "SYSTEM"));
 		ArrayList<String> cmd_col5 = new ArrayList<>(Arrays.asList("QUIT", "HELP",""));
 
 		for (int i = 0; i < cmd_col1.size(); i++) {
