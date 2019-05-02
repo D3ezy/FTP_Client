@@ -13,6 +13,7 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.logging.*;
 import java.io.InputStream;
@@ -24,16 +25,24 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedInputStream;
+import java.util.regex.*;
+import java.net.SocketException;
 
 
 public class Client {
 
+	private boolean pasvActive;
+	private boolean eprtActive;
+	private boolean portActive;
+	private boolean epsvActive;
 	private static Logger LOGGER = null;
 	private FileHandler logfile;
+	private String hostname;
+	private ServerSocket ss;
+	private int serverport;
 	private String dataHost;
 	private int dataPort;
 	private Socket s;
-	private boolean inPassive;
 	private static InputStreamReader input;
 	private static OutputStreamWriter output;
 	private static BufferedReader reader;
@@ -59,8 +68,12 @@ public class Client {
 			output = new OutputStreamWriter(s.getOutputStream());
 			input = new InputStreamReader(s.getInputStream());
 			reader = new BufferedReader(input);
+			hostname = host;
+			pasvActive = false;
+			eprtActive = false;
+			portActive = false;
+			epsvActive = false;
 			LOGGER.info(reader.readLine());
-			inPassive = false;
 			this.login();
 		} catch(UnknownHostException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
@@ -99,69 +112,168 @@ public class Client {
 		return;
 	}
 
-	public void port() {
-		// get active client port
-		// parse client port to TCP math
-		// 
+	public void port(String tcp) {
+		String response;
+		try {
+			output.write("port " + tcp + "\r\n");
+			output.flush();
+			LOGGER.info("Sent: port " + tcp);
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
+			// create a listening socket on the port from the port command
+			String[] values = tcp.split(",");
+			serverport = getPort(values[4], values[5]);
+			ss = new ServerSocket(serverport);
+			// set port as the active data connection type
+			pasvActive = false;
+			portActive = true;
+			eprtActive = false;
+			epsvActive = false;
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		}
 		return;
+	}
+
+	/* 
+	        AF Number   Protocol
+        ---------   --------
+        1           Internet Protocol, Version 4 [Pos81a]
+		2           Internet Protocol, Version 6 [DH96]
+		EPRT |1|132.235.1.2|6275|
+        EPRT |2|1080::8:800:200C:417A|5282|
+	*/
+	public void eprt(String tcp) {
+		String[] values = tcp.split("\\|");
+		String response;
+		try {
+			output.write("eprt " + tcp + "\r\n");
+			output.flush();
+			LOGGER.info("Sent: eprt " + tcp);
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
+			serverport = Integer.parseInt(values[3]);
+			System.out.println(serverport);
+			ss = new ServerSocket(serverport);
+			pasvActive = false;
+			portActive = false;
+			eprtActive = true;
+			epsvActive = false;
+		} catch(NumberFormatException e) {
+			LOGGER.info("Illegal use of EPRT command. Please use the same delimiter and only numerical values. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
+			return;
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+			return;
+		} 
 	}
 
 
 	public void retr(String filename) {
+		String response;
 		try {
 			File f = new File("./" + filename);
+			LOGGER.info("File created: " + filename);
 			String path = this.pwd() + "/" + filename;
-			if(inPassive) {
-				String response = this.pasv();
-				this.parseHostPort(response);
-			} else {
-				this.port();
+			if (!eprtActive && !portActive && !epsvActive && !pasvActive) { // if none of the port, eprt, epsv, or pasv commands have been used already, default to pasv.
+				this.pasv();
 			}
-			output.write("RETR " + path + "\r\n");
-			Socket data_trans = new Socket(this.dataHost, this.dataPort);
-			BufferedInputStream in = new BufferedInputStream(data_trans.getInputStream());
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
-			byte[] buf = new byte[4096];
-			int read;
-			while(in.available() > 0) {
-				read = in.read(buf);
-				out.write(buf, 0, read);
+			if (portActive || eprtActive) { // if active mode is enabled
+				output.write("RETR " + path + "\r\n");
+				output.flush();
+				Socket ftpServer = ss.accept();
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
+				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+				byte[] bufSize = new byte[4096];
+				int bytesRead;
+				while((bytesRead = fromServer.read(bufSize)) != -1) {
+					LOGGER.info("Bytes read from server: " + bytesRead);
+					out.write(bufSize, 0, bytesRead);
+				}
+				out.flush();
+				out.close();
+				fromServer.close();
+				ftpServer.close();
+			} else { // if pasv is enabled
+				output.write("RETR " + path + "\r\n");
+				output.flush();
+				Socket data_trans = new Socket(this.dataHost, this.dataPort);
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				BufferedInputStream fromServer = new BufferedInputStream(data_trans.getInputStream());
+				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
+				byte[] bufSize = new byte[4096];
+				int bytesRead;
+				while((bytesRead = fromServer.read(bufSize)) != -1) {
+					LOGGER.info("Bytes read from server: " + bytesRead);
+					out.write(bufSize, 0, bytesRead);
+				}
+				out.flush();
+				out.close();
+				fromServer.close();
+				data_trans.close();
 			}
-			out.flush();
-			out.close();
-			in.close();
-			data_trans.close();
+			pasvActive = false;
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 		}
 	}
 
+	// by default use passive mode, unless the user specifies eprt, port, or epsv
 	public void stor(String filepath) {
+		String response;
 		try {
 			File f = new File(filepath);
 			String filename = f.getName();
 			FileInputStream is = new FileInputStream(f);
 			BufferedInputStream in = new BufferedInputStream(is);
-			if(inPassive) {
-				String response = this.pasv();
-				this.parseHostPort(response);
+			if (!eprtActive && !portActive && !epsvActive && !pasvActive) { // if none of the port, eprt, epsv, or pasv commands have been used already, default to pasv.
+				this.pasv();
+			}
+			if (portActive || eprtActive) { // if active mode is enabled
+				output.write("STOR " + filename + "\r\n");
+				output.flush();
+				Socket ftpServer = ss.accept();
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				BufferedOutputStream out = new BufferedOutputStream(ftpServer.getOutputStream());
+				byte[] bufSize = new byte[4096];
+				int read;
+				while(in.available() > 0) {
+					read = in.read(bufSize);
+					out.write(bufSize, 0, read);	
+				}
+				out.flush();
+				out.close();
+				in.close();
+				is.close();
+				ftpServer.close();
 			} else {
-				this.port();
+				output.write("STOR " + filename + "\r\n");
+				output.flush();
+				Socket data_trans = new Socket(this.dataHost, this.dataPort);
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				BufferedOutputStream out = new BufferedOutputStream(data_trans.getOutputStream());
+				byte[] bufSize = new byte[4096];
+				int read;
+				while(in.available() > 0) {
+					read = in.read(bufSize);
+					out.write(bufSize, 0, read);	
+				}
+				out.flush();
+				out.close();
+				in.close();
+				is.close();
+				data_trans.close();
 			}
-			output.write("STOR " + filename+ "\r\n");
-			Socket data_trans = new Socket(this.dataHost, this.dataPort);
-			BufferedOutputStream out = new BufferedOutputStream(data_trans.getOutputStream());
-			byte[] buf = new byte[4096];
-			int read;
-			while(in.available() > 0) {
-				read = in.read(buf);
-				out.write(buf, 0, read);	
-			}
-			out.flush();
-			out.close();
-			in.close();
-			is.close();
-			data_trans.close();
+			pasvActive = false;
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
 		} catch(FileNotFoundException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 		} catch(IOException x) {
@@ -171,38 +283,105 @@ public class Client {
 	}
 
 	public void list(String directory) {
+		String response;
 		try {
-			String response = this.pasv();
-			this.parseHostPort(response);
-			if (directory.equals("")) {
-				output.write("list\r\n");
-				output.flush();
-			} else {
-				output.write("LIST " + directory);
-				output.flush();
+			if (!eprtActive && !portActive && !epsvActive && !pasvActive) { // if none of the port, eprt, epsv, or pasv commands have been used already, default to pasv.
+				this.pasv();
 			}
-			// response = reader.readLine();
-			// LOGGER.info("Received: " + response);
-			Socket data_trans = new Socket(this.dataHost, this.dataPort);
-			data_trans.close();
+			if (portActive || eprtActive) { // if active mode is enabled
+				if (directory.equals("")) {
+					output.write("list\r\n");
+					output.flush();
+				} else {
+					output.write("LIST " + directory + "\r\n");
+					output.flush();
+				}
+				Socket ftpServer = ss.accept();
+				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				String received;
+				byte[] bufSize = new byte[4096]; // Create a buffer to read in from data socket
+				int bytesRead;
+				while((bytesRead = fromServer.read(bufSize)) != -1) {
+					received = new String(bufSize,0,bytesRead);
+					LOGGER.info("Directory Listing. Received: " + bytesRead + " bytes.");
+					System.out.println(received);
+				}
+				fromServer.close();
+				ftpServer.close();
+			} else {
+				if (directory.equals("")) {
+					output.write("list\r\n");
+					output.flush();
+				} else {
+					output.write("LIST " + directory + "\r\n");
+					output.flush();
+				}
+				Socket data_trans = new Socket(this.dataHost, this.dataPort);
+				BufferedInputStream fromServer = new BufferedInputStream(data_trans.getInputStream());
+				response = reader.readLine();
+				LOGGER.info("Received: " + response);
+				String received;
+				byte[] bufSize = new byte[4096]; // Create a buffer to read in from data socket
+				int bytesRead;
+				while((bytesRead = fromServer.read(bufSize)) != -1) {
+					received = new String(bufSize,0,bytesRead);
+					LOGGER.info("Directory Listing. Received: " + bytesRead + " bytes.");
+					System.out.println(received);
+				}
+				fromServer.close();
+				data_trans.close();
+			}
+			pasvActive = false;
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 		}
 	}
 
-	public String pasv() { 
+	public void epsv(String arg) {
+		String response = null;
+		try {
+			if (arg.equals("")) {
+				output.write("epsv\r\n");
+				output.flush();
+			} else {
+				output.write("epsv " + arg + "\r\n");
+				output.flush();
+			}
+			response = reader.readLine();
+			LOGGER.info("Received: " + response);
+			this.getEPSVPort(response);
+			pasvActive = false;
+			portActive = false;
+			eprtActive = false;
+			epsvActive = true;
+			return;
+		} catch(IOException e) {
+			LOGGER.log(Level.SEVERE, e.toString(), e);
+		}
+		return;
+	}
+
+	public void pasv() { 
 		String response = null;
 		try {
 			output.write("pasv\r\n");
 			output.flush();
 			response = reader.readLine();
 			LOGGER.info("Received: " + response);
-			inPassive = true;
-			return response;
+			this.parseHostPort(response);
+			pasvActive = true;
+			portActive = false;
+			eprtActive = false;
+			epsvActive = false;
+			return;
 		} catch (IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
 		}
-		return response;
+		return;
 
 	}
 
@@ -221,7 +400,6 @@ public class Client {
 		return;
 	}
 
-
 	public String pwd() {
 		String response = null;
 		try {
@@ -229,8 +407,12 @@ public class Client {
 			output.flush();
 			LOGGER.info("Sent: pwd");
 			response = reader.readLine();
-			System.out.println(response);
 			LOGGER.info("Received: " + response);
+			Pattern p = Pattern.compile("\"([^\"]*)\"");
+			Matcher m = p.matcher(response);
+			while (m.find()) {
+  				return m.group(1);
+			}
 			return null;
 		} catch(IOException e) {
 			LOGGER.log(Level.SEVERE, e.toString(), e);
@@ -272,31 +454,25 @@ public class Client {
 	}
 
 	// returns client socket port number
-	private static int getPortPASV(String num1, String num2) {
+	private static int getPort(String num1, String num2) {
 		int toNum1 = Integer.parseInt(num1);
 		int toNum2 = Integer.parseInt(num2);
 		int port = (toNum1 * 256) + toNum2;
 		return port;
 	}
 
-	private int getPort() {
-		//System.out.println("Client socket port number: " + s.getPort());
-		return s.getLocalPort();
-	}
-
-	// returns client socket host address 
-	private String getHost() {
-		//System.out.println("Client socket port number: " + s.getInetAddress());
-		return s.getInetAddress().toString();
-	}
-
 	private void parseHostPort(String s) {
 		String[] paren = s.split("[\\(\\)]");
 		String[] numbers = paren[1].split(",");
-		this.dataHost = numbers[0] + "." + numbers [1] +"." + numbers[2] + "." + numbers [3];
-		this.dataPort = getPortPASV(numbers[4], numbers[5]);
-		// System.out.println(this.dataHost);
-		// System.out.println(this.dataPort);
+		dataHost = numbers[0] + "." + numbers [1] +"." + numbers[2] + "." + numbers [3];
+		dataPort = getPort(numbers[4], numbers[5]);
+		return;
+	}
+
+	private void getEPSVPort(String str) {
+		String[] bars = str.split("[\\|\\|]");
+		dataPort = Integer.parseInt(bars[3]);
+		dataHost = hostname;
 		return;
 	}
 

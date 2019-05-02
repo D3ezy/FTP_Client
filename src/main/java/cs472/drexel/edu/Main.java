@@ -39,7 +39,6 @@ public class Main {
 		} 
 
 		Client c = new Client(args[0], args[1]);
-		// c.doProtocol();
 		showMenu(c);
 	}
 
@@ -58,7 +57,6 @@ public class Main {
 						c.user(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING,"USER cmd: No username supplied",e);
-						break;
 					}
 					break;
 				case "PASS":
@@ -66,7 +64,6 @@ public class Main {
 						c.pass(args[1]);
 					} catch(ArrayIndexOutOfBoundsException e) {
 						LOGGER.log(Level.WARNING,"PASS cmd: Invalid password.",e);
-						break;
 					}
 					break;
 				case "CWD":
@@ -77,11 +74,6 @@ public class Main {
 					}
 					break;
 				case "PASV": // passive FTP
-				/* This command requests the server-DTP to "listen" on a data
-				port (which is not its default data port) and to wait for a
-				connection rather than initiate one upon receipt of a
-				transfer command.  The response to this command includes the
-				host and port address this server is listening on. */
 					try {
 						c.pasv();
 					} catch (Exception e) { // placeholder
@@ -89,6 +81,18 @@ public class Main {
 					}
 					break;
 				case "EPSV":
+					try {
+						if (args.length < 2) {
+							c.epsv("");
+						} else if (args.length == 2) {
+							c.epsv(args[1]);
+						} else {
+							LOGGER.log(Level.WARNING, "EPSV cmd: Invalid EPSV cmd. Usage: EPSV<space><net-prt> OR EPSV<space>ALL");
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					break;
 				case "PORT": // active FTP
 				/* The argument is a HOST-PORT specification for the data port
 				to be used in data connection.  There are defaults for both
@@ -106,31 +110,34 @@ public class Main {
 				where h1 is the high order 8 bits of the internet host
 				address. */
 					try {
-						c.port();
-					} catch (Exception e) { // placeholder
-						e.printStackTrace();
+						if (args.length == 2) {
+							c.port(args[1]);
+						} else {
+							LOGGER.log(Level.WARNING, "PORT cmd: Invalid PORT cmd, please specify correct TCP address following the PORT command.");
+						}
+					} catch (IllegalArgumentException e) {
+						LOGGER.log(Level.SEVERE, e.toString(), e);
 					}
 					break;
 				case "EPRT":
-				case "RETR":
-				/* This command causes the server-DTP to transfer a copy of the
-				file, specified in the pathname, to the server- or user-DTP
-				at the other end of the data connection.  The status and
-				contents of the file at the server site shall be unaffected. */
 					try {
-						c.retr(args[0]);
+						if (args.length == 2) {
+							c.eprt(args[1]);
+						} else {
+							LOGGER.log(Level.WARNING, "EPRT cmd: Invalid EPRT cmd. Usage: EPRT<space><d><net-prt><d><net-addr><d><tcp-port><d>");
+						}
+					} catch(Exception e) {
+						e.printStackTrace();
+					}
+					break;
+				case "RETR":
+					try {
+						c.retr(args[1]);
 					} catch (IllegalArgumentException e) {
 						LOGGER.log(Level.WARNING,"RETR cmd: Not a valid file argument.", e);
 					}
 					break;
 				case "STOR":
-				/* This command causes the server-DTP to accept the data
-				transferred via the data connection and to store the data as
-				a file at the server site.  If the file specified in the
-				pathname exists at the server site, then its contents shall
-				be replaced by the data being transferred.  A new file is
-				created at the server site if the file specified in the
-				pathname does not already exist. */
 					try {
 						c.stor(args[1]);
 					} catch(IllegalArgumentException e) {
@@ -140,30 +147,12 @@ public class Main {
 					}
 					break;
 				case "PWD":
-				/* This command causes the name of the current working
-				directory to be returned in the reply.  See Appendix II. */
 					c.pwd();
 					break;
 				case "SYST":
-				/* This command is used to find out the type of operating
-            	system at the server.  The reply shall have as its first
-            	word one of the system names listed in the current version
-				of the Assigned Numbers document [4]. */
 					c.systemInfo();
 					break;
 				case "LIST":
-				/* This command causes a list to be sent from the server to the
-				passive DTP.  If the pathname specifies a directory or other
-				group of files, the server should transfer a list of files
-				in the specified directory.  If the pathname specifies a
-				file then the server should send current information on the
-				file.  A null argument implies the user's current working or
-				default directory.  The data transfer is over the data
-				connection in type ASCII or type EBCDIC.  (The user must
-				ensure that the TYPE is appropriately ASCII or EBCDIC).
-				Since the information on a file may vary widely from system
-				to system, this information may be hard to use automatically
-				in a program, but may be quite useful to a human user. */
 					try {
 						if (args.length < 2) {
 							c.list("");
@@ -179,17 +168,6 @@ public class Main {
 					printMenu();
 					break;
 				case "QUIT":
-				/* This command terminates a USER and if file transfer is not
-				in progress, the server closes the control connection.  If
-				file transfer is in progress, the connection will remain
-				open for result response and the server will then close it.
-				If the user-process is transferring files for several USERs
-				but does not wish to close and then reopen connections for
-				each, then the REIN command should be used instead of QUIT.
-				An unexpected close on the control connection will cause the
-				server to take the effective action of an abort (ABOR) and a
-				logout (QUIT). */
-					// still need to do the file sending portion
 					c.quit();
 					LOGGER.info("Goodbye.");
 					input.close();
