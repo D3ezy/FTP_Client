@@ -128,7 +128,7 @@ public class Client {
 			// create a listening socket on the port from the port command
 			String[] values = tcp.split(",");
 			serverport = getPort(values[4], values[5]);
-			ss = new ServerSocket(serverport);
+			// ss = new ServerSocket(serverport);
 			// set port as the active data connection type
 			pasvActive = false;
 			portActive = true;
@@ -166,7 +166,7 @@ public class Client {
 			LOGGER.log("Received: " + response);
 			serverport = Integer.parseInt(values[3]);
 			System.out.println(serverport);
-			ss = new ServerSocket(serverport);
+			// ss = new ServerSocket(serverport);
 			pasvActive = false;
 			portActive = false;
 			eprtActive = true;
@@ -198,9 +198,11 @@ public class Client {
 			if (portActive || eprtActive) { // if active mode is enabled
 				output.write("RETR " + path + "\r\n");
 				output.flush();
+				ss = new ServerSocket(serverport);
 				Socket ftpServer = ss.accept();
 				response = reader.readLine();
 				LOGGER.log("Received: " + response);
+				System.out.println(ftpServer.isConnected());
 				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
 				BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(f));
 				byte[] bufSize = new byte[4096];
@@ -211,6 +213,9 @@ public class Client {
 				}
 				out.flush();
 				out.close();
+				portActive = false;
+				eprtActive = false;
+				ss.close();
 				fromServer.close();
 				ftpServer.close();
 			} else { // if pasv is enabled
@@ -232,6 +237,7 @@ public class Client {
 				fromServer.close();
 				data_trans.close();
 			}
+			epsvActive = false;
 			pasvActive = false;
 			response = reader.readLine();
 			LOGGER.log("Received: " + response);
@@ -259,6 +265,7 @@ public class Client {
 				// send stor command and start listening on port command specified addresses.
 				output.write("STOR " + filename + "\r\n");
 				output.flush();
+				ss = new ServerSocket(serverport);
 				Socket ftpServer = ss.accept();
 				response = reader.readLine();
 				LOGGER.log("Received: " + response);
@@ -275,6 +282,9 @@ public class Client {
 				in.close();
 				is.close();
 				ftpServer.close();
+				portActive = false;
+				eprtActive = false;
+				ss.close();
 			} else { // passive modes are enabled
 				output.write("STOR " + filename + "\r\n");
 				output.flush();
@@ -295,6 +305,7 @@ public class Client {
 				is.close();
 				data_trans.close();
 			}
+			epsvActive = false;
 			pasvActive = false;
 			response = reader.readLine();
 			LOGGER.log("Received: " + response);
@@ -325,6 +336,7 @@ public class Client {
 					output.write("LIST " + directory + "\r\n");
 					output.flush();
 				}
+				ss = new ServerSocket(serverport);
 				Socket ftpServer = ss.accept();
 				BufferedInputStream fromServer = new BufferedInputStream(ftpServer.getInputStream());
 				response = reader.readLine();
@@ -339,6 +351,9 @@ public class Client {
 				}
 				fromServer.close();
 				ftpServer.close();
+				portActive = false;
+				eprtActive = false;
+				ss.close();
 			} else {
 				if (directory.equals("")) {
 					output.write("list\r\n");
@@ -362,6 +377,7 @@ public class Client {
 				fromServer.close();
 				data_trans.close();
 			}
+			epsvActive = false;
 			pasvActive = false;
 			response = reader.readLine();
 			LOGGER.log("Received: " + response);

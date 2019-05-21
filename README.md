@@ -12,6 +12,7 @@ java -jar .\build\libs\CS472-FTPClient-all-0.1.jar <ip addr> <log file>
 Example: 
 java -jar .\build\libs\CS472-FTPClient-all-0.1.jar 10.0.0.80 C:\Users\matth\Desktop\client.log
 
+A sample client.log file is included in the submission directory.
 
 Answers to HW Questions:
 
@@ -19,7 +20,7 @@ Answers to HW Questions:
 connection and data ports – think of each separately)? How do they trust that they’re getting
 a connection from the right person?
 
-The two don't actually validate eachother in this instance. One can connect to the FTP server without even logging in. It is when they want to perform certain commands that a login is required. The is a form of application authentication. FTP works under the Presentation Layer of the OSI Model or the Application Layer under the TCP/IP Reference model. So this would mean that the Transport layer of TCP handshaking still applies to FTP. FTP uses a connection oriented handshake over TCP. This is the form of handshake that is required. Another important feature that FTP has the PORT command, which asks the FTP site to reach out to the client machine on an active listening port. This could be considered a way to authenticate that the client is who they say they are. FTP does not check the boundary conditions by which is connects to the client, and it is a unique 3-way protocol. There is an assumed trust factor to those who are implementing and using the protocol. 
+The two don't actually validate eachother in this instance. One can connect to the FTP server without even logging in. It is when they want to perform certain commands that a login is required. The is a form of application authentication. FTP works under the Presentation Layer of the OSI Model or the Application Layer under the TCP/IP Reference model. So this would mean that the Transport layer of TCP handshaking still applies to FTP. FTP uses a connection oriented handshake over TCP. This is the form of handshake that is required. Another important feature that FTP has the PORT command, which asks the FTP site to reach out to the client machine on an active listening port. This could be considered a way to authenticate that the client is who they say they are. FTP does not check the boundary conditions by which is connects to the client, and it is a unique 3-way protocol. There is an assumed trust factor to those who are implementing and using the protocol. FTP also uses Implicit SSL and has versions of Secure-FTP (SFTP/FTPS). But these are different renditions of the protocol. As the generic FTP sits, on the Application layer you can set some security mesaures, but other than TCP communication handshakes, there isn't much of a security. The protocol has some level of trust in which ports are selected and which the client connects to. 
 
 2. How does your client know that it’s sending the right commands in the right order? How
 does it know the sender is trustworthy? 
