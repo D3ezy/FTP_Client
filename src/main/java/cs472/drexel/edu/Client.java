@@ -124,6 +124,11 @@ public class Client {
 			output.flush();
 			LOGGER.log("Sent: port " + tcp);
 			response = reader.readLine();
+			String[] res = response.split(" ");
+			if (res[0].equals("502")) {
+				LOGGER.log("Command not implemented by server. Returning and not entering mode.");
+				return;
+			}
 			LOGGER.log("Received: " + response);
 			// create a listening socket on the port from the port command
 			String[] values = tcp.split(",");
@@ -163,6 +168,11 @@ public class Client {
 			output.flush();
 			LOGGER.log("Sent: eprt " + tcp);
 			response = reader.readLine();
+			String[] res = response.split(" ");
+			if (res[0].equals("502")) {
+				LOGGER.log("Command not implemented by server. Returning and not entering mode.");
+				return;
+			}
 			LOGGER.log("Received: " + response);
 			serverport = Integer.parseInt(values[3]);
 			System.out.println(serverport);
@@ -400,6 +410,11 @@ public class Client {
 				output.flush();
 			}
 			response = reader.readLine();
+			String[] res = response.split(" ");
+			if (res[0].equals("502")) {
+				LOGGER.log("Command not implemented by server. Returning and not entering mode.");
+				return;
+			}
 			LOGGER.log("Received: " + response);
 			// get the port from the response of the epsv command
 			this.getEPSVPort(response);
@@ -424,6 +439,11 @@ public class Client {
 			output.write("pasv\r\n");
 			output.flush();
 			response = reader.readLine();
+			String[] res = response.split(" ");
+			if (res[0].equals("502")) {
+				LOGGER.log("Command not implemented by server. Returning and not entering mode.");
+				return;
+			}
 			LOGGER.log("Received: " + response);
 			this.parseHostPort(response);
 			pasvActive = true;
