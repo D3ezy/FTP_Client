@@ -7,6 +7,8 @@
  * CS 472 - HW2 - Computer Networks
  * 
  * 
+ * Last Updated: May 28th, 2019
+ * 
  * Commented out all of the java.util.Logging statements
  * 
  */
